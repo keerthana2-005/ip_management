@@ -1,0 +1,97 @@
+
+/* Container for the form and layout */
+.signup-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(to bottom, rgb(255, 255, 255), rgb(255, 255, 255)); /* Pure white background */
+  }
+  
+  /* Form box design */
+  .signup-box {
+    background-color: white;
+    padding: 40px 60px;
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+  }
+  
+  /* Title and subtitle */
+  .signup-title {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  
+  .signup-subtitle {
+    text-align: center;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  
+  /* Form group and input field styling */
+  .input-group {
+    margin-bottom: 20px;
+  }
+  
+  .input-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  
+  .input-container input {
+    border: none;
+    flex: 1;
+    padding: 10px;
+    outline: none;
+  }
+  
+  .input-icon {
+    margin-right: 10px;
+    color: #6a11cb; /* Icon color */
+  }
+  
+  /* Button styling */
+  .signup-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    background-color: #6a11cb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .signup-button .arrow-icon {
+    margin-left: 8px;
+  }
+  
+  /* Error message */
+  .error-message {
+    color: red;
+    text-align: center;
+  }
+  
+  /* Footer text under the form */
+  .login-footer {
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  .login-footer a {
+    color: #6a11cb;
+    text-decoration: none;
+  }
+  
+  .login-footer a:hover {
+    text-decoration: underline;
+  }
+  
