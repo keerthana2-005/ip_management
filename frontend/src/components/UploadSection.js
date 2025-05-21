@@ -5,6 +5,8 @@ const UploadSection = () => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('idle');
+  const [ipfsLink, setIpfsLink] = useState(null);
+
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -33,32 +35,69 @@ const UploadSection = () => {
     }
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!selectedFile) return;
+
+  //   try {
+  //     setUploadStatus('uploading');
+      
+  //     // Simulate upload delay
+  //     await new Promise(resolve => setTimeout(resolve, 1500));
+      
+  //     // Here you would connect to your blockchain service to register the IP
+  //     console.log('Uploading file:', selectedFile.name);
+      
+  //     setUploadStatus('success');
+      
+  //     // Reset form after successful upload
+  //     setTimeout(() => {
+  //       setSelectedFile(null);
+  //       setUploadStatus('idle');
+  //     }, 3000);
+  //   } catch (error) {
+  //     console.error('Upload failed:', error);
+  //     setUploadStatus('error');
+  //   }
+  // };
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFile) return;
-
+  
     try {
       setUploadStatus('uploading');
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Here you would connect to your blockchain service to register the IP
-      console.log('Uploading file:', selectedFile.name);
-      
+  
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+  
+      const response = await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+  
+      const data = await response.json();
+      const ipfsUrl = `https://ipfs.io/ipfs/${data.cid}`;
+  
+      // 👇 Just log the link here
+      console.log('File uploaded to IPFS:', ipfsUrl);
+  
       setUploadStatus('success');
-      
-      // Reset form after successful upload
+  
       setTimeout(() => {
         setSelectedFile(null);
         setUploadStatus('idle');
-      }, 3000);
+      }, 6000);
     } catch (error) {
       console.error('Upload failed:', error);
       setUploadStatus('error');
     }
   };
-
+  
+  
   const containerStyle = {
     width: '100%',
     minHeight: '100vh',
