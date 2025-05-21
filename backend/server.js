@@ -4,13 +4,23 @@ const nodemailer = require("nodemailer");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { Pool } = require("pg");
-
+// for handling the upload funtion from uploadsection
 const app = express();
 const PORT = 5000;
 
+
+
+
+//handling the upload request from the uploadsection
+const pinataSDK = require('@pinata/sdk');
+const pinata = new pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
+const multer = require('multer');
+const fs = require('fs');
+const upload = multer({ dest: 'uploads/' });
+
+
 app.use(cors());
 app.use(bodyParser.json());
-
 // PostgreSQL connection setup
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -193,5 +203,74 @@ app.post("/api/store-profile", async (req, res) => {
       client.release();
   }
 });
+
+// app.post('/upload', upload.single('file'), async (req, res) => {
+//     try {
+//         if (!req.file) {
+//             return res.status(400).json({ error: 'No file uploaded' });
+//         }
+
+//         const readableStreamForFile = fs.createReadStream(req.file.path);
+
+//         // Set a default name for the uploaded file
+//         const defaultFileName = "my-default-ipfs-file"; // <--- Here's your default name
+
+//         const options = {
+//             pinataMetadata: {
+//                 name: defaultFileName, // <--- Using the default name
+//             },
+//         };
+
+//         const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+
+//         fs.unlinkSync(req.file.path);
+
+//         res.json({
+//             message: 'File uploaded to IPFS successfully',
+//             ipfsHash: result.IpfsHash,
+//             pinSize: result.PinSize,
+//             timestamp: result.Timestamp,
+//         });
+//     } catch (error) {
+//         console.error('❌ Error uploading file to Pinata:', error);
+//         res.status(500).json({ error: 'Failed to upload file' });
+//     }
+// });
+app.post('/upload', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const readableStreamForFile = fs.createReadStream(req.file.path);
+
+        const options = {
+            pinataMetadata: {
+                name: req.file.originalname, // Or a default name like "my-default-ipfs-file"
+            },
+        };
+
+        const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+
+        // --- CONSOLE.LOG THE HASH HERE ---
+        console.log('✅ File uploaded to IPFS. Hash:', result.IpfsHash);
+        // ----------------------------------
+
+        fs.unlinkSync(req.file.path); // Delete the temporary file
+
+        // --- ONLY SEND A GENERIC SUCCESS MESSAGE TO THE FRONTEND ---
+        res.json({
+            message: 'File upload process initiated successfully on the server.',
+            // No IPFS hash or other Pinata-specific details sent here
+        });
+
+    } catch (error) {
+        console.error('❌ Error uploading file to Pinata:', error);
+        res.status(500).json({ error: `Failed to initiate file upload: ${error.message}` });
+    }
+});
+  
+
+
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
