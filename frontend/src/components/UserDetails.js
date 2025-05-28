@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Wallet, Users, CheckCircle } from 'lucide-react';
 
-const cn = (...classes) => classes.filter(Boolean).join(' ');
-
-const UserDetails = () => {
+const UserDetails = ({ initialUsername = "kee" }) => {
     const [user, setUser] = useState({
         name: "",
-        username: "",
+        username: initialUsername,
         isConnected: false,
         address: null,
         bio: ""
@@ -28,16 +26,15 @@ const UserDetails = () => {
                 const errorData = await response.json();
                 console.error('Failed to store user data:', errorData);
                 setErrorMessage('Failed to save profile. Please try again.');
-                return; // Important: Exit the function on error
+                return;
             }
 
-            const responseData = await response.json(); // Parse the JSON response
+            const responseData = await response.json();
             console.log('User data stored successfully:', responseData);
 
             if (responseData.message === "Metamask address already associated with this user.") {
                 setUser(prevUser => ({ ...prevUser, address: responseData.metaadress, isConnected: true }));
             }
-
 
         } catch (error) {
             console.error('Error storing user data:', error);
@@ -53,11 +50,9 @@ const UserDetails = () => {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const address = accounts[0];
                 if (address) {
-                    //  Get username.
                     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
                     const generatedUsername = storedUser.username || `user_${address.slice(0, 8)}`;
 
-                    // Store the username and address in the database
                     await storeUserData(generatedUsername, address);
 
                     const updatedUser = {
@@ -74,7 +69,7 @@ const UserDetails = () => {
                     setErrorMessage("No accounts found in Metamask.");
                 }
             } else {
-                setErrorMessage("Metamask is not installed. Please install it to connect.");
+                setErrorMessage("MetaMask is not installed. Please install it to connect.");
             }
         } catch (error) {
             console.error("Failed to connect wallet:", error);
@@ -110,8 +105,6 @@ const UserDetails = () => {
             }
         };
 
-        // Check for stored user on component mount.  This is important
-        // for persistence across page reloads.
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
@@ -119,8 +112,10 @@ const UserDetails = () => {
                 setUser(userObj);
             } catch (e) {
                 console.error("Error parsing stored user:", e);
-                localStorage.removeItem('user'); // Clear corrupted data.
+                localStorage.removeItem('user');
             }
+        } else {
+            setUser(prev => ({...prev, username: initialUsername}));
         }
 
         fetchInitialConnection();
@@ -130,50 +125,19 @@ const UserDetails = () => {
                 window.ethereum.removeAllListeners('accountsChanged');
             }
         };
-    }, []);
-
-    // Function to handle login and set user data
-    const handleLogin = useCallback((loginData) => {
-        setUser({
-            email: loginData.email,
-            username: loginData.username,
-            address: loginData.metaadress || null, // Use the metaadress from login
-            isConnected: !!loginData.metaadress,
-            bio: "Welcome to your blockchain profile", // Or fetch from backend
-        });
-        // Persist user data across reloads
-        localStorage.setItem('user', JSON.stringify({
-            email: loginData.email,
-            username: loginData.username,
-            address: loginData.metaadress,
-            isConnected: !!loginData.metaadress
-        }));
-
-    }, []);
-
-    useEffect(() => {
-        // Simulate a successful login:
-        const simulatedLoginData = {
-            email: "test@example.com",
-            username: "testuser",
-            metaadress: "0x1234567890abcdef",  //  Simulated
-        };
-
-       // handleLogin(simulatedLoginData); //  Call  when your *actual* login occurs.
-    }, [handleLogin]);
-
+    }, [initialUsername]);
 
     return (
-        <div style={{ ...styles.container, width: '100%' }}>
+        <div style={styles.container}>
             <div style={styles.userSection}>
                 <div style={styles.userAvatar}>
-                    <Users style={{ ...styles.userIcon, color: '#fff' }} size={48} />
+                    <Users style={styles.userIcon} size={48} />
                 </div>
                 <div style={styles.userInfo}>
-                    <h1 style={{ ...styles.userName, color: '#fff' }}>
+                    <h1 style={styles.userName}>
                         {user?.username || "Guest"}
                     </h1>
-                    <p style={{ ...styles.userBio, color: '#d1d5db' }}>
+                    <p style={styles.userBio}>
                         {user?.bio || "Welcome to your blockchain profile"}
                     </p>
 
@@ -191,24 +155,9 @@ const UserDetails = () => {
                 <button
                     onClick={handleConnectWallet}
                     disabled={isLoading}
-                    className={cn(
-                        "w-auto",
-                        "bg-gradient-to-r from-black to-black",
-                        "text-white",
-                        "px-4 py-2",
-                        "rounded-md",
-                        "shadow-lg",
-                        "transition-all duration-200",
-                        "font-semibold text-sm",
-                        "hover:from-gray-800 hover:to-gray-800",
-                        "hover:scale-103",
-                        "hover:shadow-xl",
-                        "active:scale-98",
-                        "active:shadow-sm",
-                        "flex items-center justify-center gap-2 border border-gray-700"
-                    )}
+                    style={styles.connectButton}
                 >
-                    <Wallet className="w-4 h-4 text-white" />
+                    <Wallet style={styles.buttonIcon} />
                     {isLoading ? "Connecting..." : "Connect Metamask"}
                 </button>
             )}
@@ -225,29 +174,33 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '2.5rem',
+        padding: '1.5rem 3rem',
         backgroundColor: '#000',
         borderRadius: '1.25rem',
         boxShadow: '0 12px 24px -6px rgba(0, 0, 0, 0.4)',
-        width: '100%',
-        margin: '0 auto',
+        maxWidth: '1000px',
         transition: 'all 0.3s ease',
         border: '1px solid #374151',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        height: 'fit-content',
+        position: 'absolute',
+        top: '100px', // **ADJUST THIS VALUE TO MOVE IT UP/DOWN**
+        left: '1.4cm',
+        right: 'auto',
     },
     userSection: {
         display: 'flex',
-        alignItems: 'center',
-        gap: '2.5rem',
-        marginBottom: '2.5rem',
-        width: '100%',
-        textAlign: 'left',
         flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1rem',
+        marginBottom: '1rem',
+        width: '100%',
+        textAlign: 'center',
         boxSizing: 'border-box',
     },
     userAvatar: {
-        width: '7rem',
-        height: '7rem',
+        width: '5.5rem',
+        height: '5.5rem',
         borderRadius: '9999px',
         backgroundColor: '#242424',
         display: 'flex',
@@ -259,70 +212,94 @@ const styles = {
     },
     userIcon: {
         color: '#fff',
-        width: '3.5rem',
-        height: '3.5rem',
+        width: '2.75rem',
+        height: '2.75rem',
         filter: 'drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.4))'
     },
     userInfo: {
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '0.75rem',
+        alignItems: 'center',
+        gap: '0.4rem',
         width: '100%',
         boxSizing: 'border-box',
     },
     userName: {
-        fontSize: '2.5rem',
+        fontSize: '2rem',
         fontWeight: 'bold',
         color: '#fff',
-        marginBottom: '0.5rem',
+        marginBottom: '0.1rem',
         textShadow: '2px 3px 5px rgba(0, 0, 0, 0.8)',
-        letterSpacing: '-0.02em'
+        letterSpacing: '-0.02em',
+        lineHeight: '1.2'
     },
     userBio: {
-        fontSize: '1.1rem',
+        fontSize: '0.9rem',
         color: '#d1d5db',
         opacity: 0.9,
-        marginBottom: '1.25rem',
-        lineHeight: '1.7',
+        marginBottom: '0.8rem',
+        lineHeight: '1.4',
     },
     addressDisplay: {
         display: 'flex',
         alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.5rem',
+        gap: '0.5rem',
+        padding: '0.3rem 0.7rem',
         borderRadius: '0.75rem',
         width: 'fit-content',
         backgroundColor: '#374151',
         border: '1px solid #4a5568',
+        marginTop: '0.3rem',
     },
     walletAddress: {
-        fontSize: '0.95rem',
+        fontSize: '0.8rem',
         color: '#fff',
         wordBreak: 'break-all',
         opacity: 0.8,
         transition: 'opacity 0.2s ease, transform 0.2s ease',
-        padding: '0.375rem',
+        padding: '0.2rem 0.4rem',
         borderRadius: '0.5rem',
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         border: '1px solid #4a5568',
     },
     walletLabel: {
-        fontSize: '0.95rem',
+        fontSize: '0.8rem',
         color: '#9ca3af',
-        marginRight: '0.375rem',
+        marginRight: '0.2rem',
         fontWeight: 'medium'
     },
     checkCircle: {
         color: '#fff',
-        width: '1.25rem',
-        height: '1.25rem',
+        width: '0.9rem',
+        height: '0.9rem',
         filter: 'drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.3))'
+    },
+    connectButton: {
+        backgroundColor: '#000',
+        color: 'white',
+        padding: '0.6rem 1.2rem',
+        borderRadius: '0.375rem',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)',
+        transition: 'all 0.2s ease-in-out',
+        fontWeight: '600',
+        fontSize: '0.875rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        border: '1px solid #374151',
+        cursor: 'pointer',
+    },
+    buttonIcon: {
+        width: '0.9rem',
+        height: '0.9rem',
+        color: '#fff',
     },
     errorMessage: {
         color: '#ff4d4f',
-        marginTop: '1rem',
-        fontSize: '0.9rem',
+        marginTop: '0.8rem',
+        fontSize: '0.85rem',
+        textAlign: 'center',
     }
 };
 

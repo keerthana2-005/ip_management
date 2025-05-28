@@ -236,40 +236,138 @@ app.post("/api/store-profile", async (req, res) => {
 //         res.status(500).json({ error: 'Failed to upload file' });
 //     }
 // });
-app.post('/upload', upload.single('file'), async (req, res) => {
+
+//uploading files to pinata 
+// app.post('/upload', upload.single('file'), async (req, res) => {
+//     try {
+//         if (!req.file) {
+//             return res.status(400).json({ error: 'No file uploaded' });
+//         }
+
+//         const readableStreamForFile = fs.createReadStream(req.file.path);
+
+//         const options = {
+//             pinataMetadata: {
+//                 name: req.file.originalname, // Or a default name like "my-default-ipfs-file"
+//             },
+//         };
+
+//         const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+
+//         // --- CONSOLE.LOG THE HASH HERE ---
+//         console.log('✅ File uploaded to IPFS. Hash:', result.IpfsHash);
+//         // ----------------------------------
+
+//         fs.unlinkSync(req.file.path); // Delete the temporary file
+
+//         // --- ONLY SEND A GENERIC SUCCESS MESSAGE TO THE FRONTEND ---
+//         res.json({
+//             message: 'File upload process initiated successfully on the server.',
+//             // No IPFS hash or other Pinata-specific details sent here
+//         });
+
+//     } catch (error) {
+//         console.error('❌ Error uploading file to Pinata:', error);
+//         res.status(500).json({ error: `Failed to initiate file upload: ${error.message}` });
+//     }
+// });
+  
+
+app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+            return res.status(400).json({ error: 'No file uploaded.' });
         }
 
-        const readableStreamForFile = fs.createReadStream(req.file.path);
+        // Extract metadata from req.body (Multer makes these available from the FormData)
+        const { title, workType, description } = req.body;
 
-        const options = {
-            pinataMetadata: {
-                name: req.file.originalname, // Or a default name like "my-default-ipfs-file"
-            },
+        // Basic validation for metadata fields
+        if (!title || !workType || !description) {
+            // Clean up the temporary file if metadata is missing
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+            // Changed the error message as per your request
+            return res.status(400).json({ error: 'Fields cannot be empty.' });
+        }
+
+        console.log("Received upload request:");
+        console.log("File:", req.file.originalname);
+        console.log("Metadata:", { title, workType, description });
+
+        let artworkCID;
+        let metadataCID;
+
+        // 1. Upload Actual Data File to IPFS
+        try {
+            const readableStreamForFile = fs.createReadStream(req.file.path);
+            const options = {
+                pinataMetadata: {
+                    name: req.file.originalname, // Use original filename for Pinata dashboard
+                },
+            };
+            console.log("Pinning actual data to IPFS...");
+            const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+            artworkCID = result.IpfsHash;
+            console.log("Artwork pinned! CID:", artworkCID);
+        } catch (ipfsError) {
+            console.error("Error pinning actual data to IPFS:", ipfsError);
+            return res.status(500).json({ error: 'Failed to pin actual data to IPFS.' });
+        } finally {
+            // Always clean up the temporary file created by multer after processing
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+        }
+
+        // 2. Create Metadata JSON
+        const metadata = {
+            name: title,
+            work_type: workType,
+            description: description,
+            // Point the 'image' field to the IPFS CID of the actual data
+            // This is the standard for NFTs and general content linking
+            image: `ipfs://${artworkCID}`,
+            // You can add more attributes here if needed for richer metadata
+            // attributes: [
+            //     { trait_type: "Work Type", value: workType }
+            // ]
         };
 
-        const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+        // 3. Upload Metadata JSON to IPFS
+        try {
+            console.log("Pinning metadata JSON to IPFS...");
+            const result = await pinata.pinJSONToIPFS(metadata, {
+                pinataMetadata: {
+                    name: `Metadata for ${title}`, // Descriptive name for Pinata dashboard
+                },
+            });
+            metadataCID = result.IpfsHash;
+            console.log("Metadata pinned! CID:", metadataCID);
+        } catch (ipfsError) {
+            console.error("Error pinning metadata JSON to IPFS:", ipfsError);
+            return res.status(500).json({ error: 'Failed to pin metadata JSON to IPFS.' });
+        }
 
-        // --- CONSOLE.LOG THE HASH HERE ---
-        console.log('✅ File uploaded to IPFS. Hash:', result.IpfsHash);
-        // ----------------------------------
-
-        fs.unlinkSync(req.file.path); // Delete the temporary file
-
-        // --- ONLY SEND A GENERIC SUCCESS MESSAGE TO THE FRONTEND ---
-        res.json({
-            message: 'File upload process initiated successfully on the server.',
-            // No IPFS hash or other Pinata-specific details sent here
+        // 4. Respond to frontend with the CIDs and original metadata, plus gateway URL
+        // The frontend (UploadSection.js) expects these fields to display the content.
+        res.status(200).json({
+            message: 'Data and metadata uploaded to IPFS successfully!',
+            artworkCID: artworkCID,
+            metadataCID: metadataCID,
+            title: title,       // Send back original metadata for immediate display
+            workType: workType,
+            description: description,
+            pinataGateway: process.env.PINATA_DEDICATED_GATEWAY // Send gateway URL from .env
         });
 
     } catch (error) {
-        console.error('❌ Error uploading file to Pinata:', error);
-        res.status(500).json({ error: `Failed to initiate file upload: ${error.message}` });
+        console.error("Server error during upload process:", error);
+        res.status(500).json({ error: 'An unexpected error occurred on the server.' });
     }
 });
-  
+
 
 
 
