@@ -272,23 +272,18 @@ app.post("/api/store-profile", async (req, res) => {
 //     }
 // });
   
-
 app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded.' });
         }
 
-        // Extract metadata from req.body (Multer makes these available from the FormData)
         const { title, workType, description } = req.body;
 
-        // Basic validation for metadata fields
         if (!title || !workType || !description) {
-            // Clean up the temporary file if metadata is missing
             if (fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path);
             }
-            // Changed the error message as per your request
             return res.status(400).json({ error: 'Fields cannot be empty.' });
         }
 
@@ -299,12 +294,12 @@ app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
         let artworkCID;
         let metadataCID;
 
-        // 1. Upload Actual Data File to IPFS
+        // Upload file to IPFS
         try {
             const readableStreamForFile = fs.createReadStream(req.file.path);
             const options = {
                 pinataMetadata: {
-                    name: req.file.originalname, // Use original filename for Pinata dashboard
+                    name: req.file.originalname,
                 },
             };
             console.log("Pinning actual data to IPFS...");
@@ -315,32 +310,29 @@ app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
             console.error("Error pinning actual data to IPFS:", ipfsError);
             return res.status(500).json({ error: 'Failed to pin actual data to IPFS.' });
         } finally {
-            // Always clean up the temporary file created by multer after processing
             if (fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path);
             }
         }
 
-        // 2. Create Metadata JSON
+        // ✅ Custom metadata with hardcoded username and metaadress
         const metadata = {
             name: title,
             work_type: workType,
             description: description,
-            // Point the 'image' field to the IPFS CID of the actual data
-            // This is the standard for NFTs and general content linking
             image: `ipfs://${artworkCID}`,
-            // You can add more attributes here if needed for richer metadata
-            // attributes: [
-            //     { trait_type: "Work Type", value: workType }
-            // ]
+            uploader: {
+                username: "kee",
+                address: "0x342d57aeef3d57b4d844f3928660105e4f70184b"
+            },
         };
 
-        // 3. Upload Metadata JSON to IPFS
+        // Upload metadata to IPFS
         try {
             console.log("Pinning metadata JSON to IPFS...");
             const result = await pinata.pinJSONToIPFS(metadata, {
                 pinataMetadata: {
-                    name: `Metadata for ${title}`, // Descriptive name for Pinata dashboard
+                    name: `Metadata for ${title}`,
                 },
             });
             metadataCID = result.IpfsHash;
@@ -350,16 +342,15 @@ app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
             return res.status(500).json({ error: 'Failed to pin metadata JSON to IPFS.' });
         }
 
-        // 4. Respond to frontend with the CIDs and original metadata, plus gateway URL
-        // The frontend (UploadSection.js) expects these fields to display the content.
+        // Final response
         res.status(200).json({
             message: 'Data and metadata uploaded to IPFS successfully!',
-            artworkCID: artworkCID,
-            metadataCID: metadataCID,
-            title: title,       // Send back original metadata for immediate display
-            workType: workType,
-            description: description,
-            pinataGateway: process.env.PINATA_DEDICATED_GATEWAY // Send gateway URL from .env
+            artworkCID,
+            metadataCID,
+            title,
+            workType,
+            description,
+            pinataGateway: process.env.PINATA_DEDICATED_GATEWAY
         });
 
     } catch (error) {
