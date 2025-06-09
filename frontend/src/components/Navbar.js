@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Menu, X, Shield, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -96,7 +95,13 @@ const Navbar = () => {
     },
   };
 
-  const navLinks = ['Home', 'Explore', 'How It Works', 'About'];
+  // Updated navLinks to include paths:
+  const navLinks = [
+    { name: 'Home', path: '/home' },
+    { name: 'Explore', path: '/explore' },
+    { name: 'How It Works', path: '/how-it-works' },
+    { name: 'About', path: '/about' },
+  ];
 
   return (
     <nav style={styles.nav}>
@@ -109,10 +114,10 @@ const Navbar = () => {
 
         {/* Desktop Menu */}
         <div className="menu" style={{ display: window.innerWidth > 768 ? 'flex' : 'none', ...styles.menu }}>
-          {navLinks.map((link) => (
-            <a key={link} href="#" style={styles.link}>
-              {link}
-            </a>
+          {navLinks.map(({ name, path }) => (
+            <Link key={name} to={path} style={styles.link}>
+              {name}
+            </Link>
           ))}
         </div>
 
@@ -120,9 +125,8 @@ const Navbar = () => {
         <div className="buttons" style={{ display: window.innerWidth > 768 ? 'flex' : 'none', ...styles.buttons }}>
           <button style={styles.connectBtn}>Connect Wallet</button>
           <Link to="/profile" style={styles.iconBtn}>
-  <User size={24} />
-</Link>
-
+            <User size={24} />
+          </Link>
         </div>
 
         {/* Mobile Toggle Button */}
@@ -139,10 +143,10 @@ const Navbar = () => {
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && window.innerWidth <= 768 && (
         <div style={styles.mobileMenu}>
-          {navLinks.map((link) => (
-            <a key={link} href="#" style={styles.mobileLink}>
-              {link}
-            </a>
+          {navLinks.map(({ name, path }) => (
+            <Link key={name} to={path} style={styles.mobileLink} onClick={() => setIsMenuOpen(false)}>
+              {name}
+            </Link>
           ))}
           <div style={{ marginTop: '1rem' }}>
             <button style={styles.connectBtn}>Connect Wallet</button>
