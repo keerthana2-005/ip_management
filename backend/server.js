@@ -4,23 +4,22 @@ const nodemailer = require("nodemailer");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { Pool } = require("pg");
-// for handling the upload funtion from uploadsection
+const pinataSDK = require('@pinata/sdk');
+const multer = require('multer');
+const fs = require('fs');
+const { ethers } = require("ethers");
+const { JsonRpcProvider } = require("ethers");
+
 const app = express();
 const PORT = 5000;
 
-
-
-
-//handling the upload request from the uploadsection
-const pinataSDK = require('@pinata/sdk');
+// Pinata client init
 const pinata = new pinataSDK(process.env.PINATA_API_KEY, process.env.PINATA_API_SECRET);
-const multer = require('multer');
-const fs = require('fs');
 const upload = multer({ dest: 'uploads/' });
-
 
 app.use(cors());
 app.use(bodyParser.json());
+
 // PostgreSQL connection setup
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -34,7 +33,7 @@ pool.connect((err) => {
     }
 });
 
-// Nodemailer configuration
+// Nodemailer setup
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -51,9 +50,7 @@ transporter.verify((error) => {
     }
 });
 
-// Generate a random 6-digit verification code
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
-
 // Signup route with email/username check
 app.post("/send-verification", async (req, res) => {
     const { email, username, password } = req.body;
@@ -203,163 +200,216 @@ app.post("/api/store-profile", async (req, res) => {
       client.release();
   }
 });
+// Your routes here (signup, verify-code, login, store-profile) - unchanged
 
-// app.post('/upload', upload.single('file'), async (req, res) => {
-//     try {
-//         if (!req.file) {
-//             return res.status(400).json({ error: 'No file uploaded' });
-//         }
+// Blockchain setup
+const contractAddress = "0xc045aC1922c33F57d99ecF84ED4133baE66b73c8";
+const contractABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_metadataCID",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_username",
+				"type": "string"
+			}
+		],
+		"name": "uploadWork",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "metadataCID",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "uploader",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"name": "WorkUploaded",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "getAllWorks",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "metadataCID",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "uploader",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "username",
+						"type": "string"
+					}
+				],
+				"internalType": "struct WorkRegistry.Work[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "works",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "metadataCID",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "uploader",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
 
-//         const readableStreamForFile = fs.createReadStream(req.file.path);
+const provider = new JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/qsA0uUqVTfJNXlFLQ87mEkPdbD187nUt");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-//         // Set a default name for the uploaded file
-//         const defaultFileName = "my-default-ipfs-file"; // <--- Here's your default name
+const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
-//         const options = {
-//             pinataMetadata: {
-//                 name: defaultFileName, // <--- Using the default name
-//             },
-//         };
-
-//         const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
-
-//         fs.unlinkSync(req.file.path);
-
-//         res.json({
-//             message: 'File uploaded to IPFS successfully',
-//             ipfsHash: result.IpfsHash,
-//             pinSize: result.PinSize,
-//             timestamp: result.Timestamp,
-//         });
-//     } catch (error) {
-//         console.error('❌ Error uploading file to Pinata:', error);
-//         res.status(500).json({ error: 'Failed to upload file' });
-//     }
-// });
-
-//uploading files to pinata 
-// app.post('/upload', upload.single('file'), async (req, res) => {
-//     try {
-//         if (!req.file) {
-//             return res.status(400).json({ error: 'No file uploaded' });
-//         }
-
-//         const readableStreamForFile = fs.createReadStream(req.file.path);
-
-//         const options = {
-//             pinataMetadata: {
-//                 name: req.file.originalname, // Or a default name like "my-default-ipfs-file"
-//             },
-//         };
-
-//         const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
-
-//         // --- CONSOLE.LOG THE HASH HERE ---
-//         console.log('✅ File uploaded to IPFS. Hash:', result.IpfsHash);
-//         // ----------------------------------
-
-//         fs.unlinkSync(req.file.path); // Delete the temporary file
-
-//         // --- ONLY SEND A GENERIC SUCCESS MESSAGE TO THE FRONTEND ---
-//         res.json({
-//             message: 'File upload process initiated successfully on the server.',
-//             // No IPFS hash or other Pinata-specific details sent here
-//         });
-
-//     } catch (error) {
-//         console.error('❌ Error uploading file to Pinata:', error);
-//         res.status(500).json({ error: `Failed to initiate file upload: ${error.message}` });
-//     }
-// });
-  
 app.post('/upload-to-ipfs', upload.single('actualData'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded.' });
-        }
-
-        const { title, workType, description } = req.body;
-
-        if (!title || !workType || !description) {
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
-            return res.status(400).json({ error: 'Fields cannot be empty.' });
-        }
-
-        console.log("Received upload request:");
-        console.log("File:", req.file.originalname);
-        console.log("Metadata:", { title, workType, description });
-
-        let artworkCID;
-        let metadataCID;
-
-        // Upload file to IPFS
-        try {
-            const readableStreamForFile = fs.createReadStream(req.file.path);
-            const options = {
-                pinataMetadata: {
-                    name: req.file.originalname,
-                },
-            };
-            console.log("Pinning actual data to IPFS...");
-            const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
-            artworkCID = result.IpfsHash;
-            console.log("Artwork pinned! CID:", artworkCID);
-        } catch (ipfsError) {
-            console.error("Error pinning actual data to IPFS:", ipfsError);
-            return res.status(500).json({ error: 'Failed to pin actual data to IPFS.' });
-        } finally {
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
-        }
-
-        // ✅ Custom metadata with hardcoded username and metaadress
-        const metadata = {
-            name: title,
-            work_type: workType,
-            description: description,
-            image: `ipfs://${artworkCID}`,
-            uploader: {
-                username: "kee",
-                address: "0x342d57aeef3d57b4d844f3928660105e4f70184b"
-            },
-        };
-
-        // Upload metadata to IPFS
-        try {
-            console.log("Pinning metadata JSON to IPFS...");
-            const result = await pinata.pinJSONToIPFS(metadata, {
-                pinataMetadata: {
-                    name: `Metadata for ${title}`,
-                },
-            });
-            metadataCID = result.IpfsHash;
-            console.log("Metadata pinned! CID:", metadataCID);
-        } catch (ipfsError) {
-            console.error("Error pinning metadata JSON to IPFS:", ipfsError);
-            return res.status(500).json({ error: 'Failed to pin metadata JSON to IPFS.' });
-        }
-
-        // Final response
-        res.status(200).json({
-            message: 'Data and metadata uploaded to IPFS successfully!',
-            artworkCID,
-            metadataCID,
-            title,
-            workType,
-            description,
-            pinataGateway: process.env.PINATA_DEDICATED_GATEWAY
-        });
-
-    } catch (error) {
-        console.error("Server error during upload process:", error);
-        res.status(500).json({ error: 'An unexpected error occurred on the server.' });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
     }
+
+    const { title, workType, description } = req.body;
+
+    if (!title || !workType || !description) {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      return res.status(400).json({ error: 'Fields cannot be empty.' });
+    }
+
+    console.log("Received upload request:");
+    console.log("File:", req.file.originalname);
+    console.log("Metadata:", { title, workType, description });
+
+    let artworkCID;
+    let metadataCID;
+
+    // Upload file to IPFS (Pinata)
+    try {
+      const readableStreamForFile = fs.createReadStream(req.file.path);
+      const options = {
+        pinataMetadata: {
+          name: req.file.originalname,
+        },
+      };
+      console.log("Pinning actual data to IPFS...");
+      const result = await pinata.pinFileToIPFS(readableStreamForFile, options);
+      artworkCID = result.IpfsHash;
+      console.log("Artwork pinned! CID:", artworkCID);
+    } catch (ipfsError) {
+      console.error("Error pinning actual data to IPFS:", ipfsError);
+      return res.status(500).json({ error: 'Failed to pin actual data to IPFS.' });
+    } finally {
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    }
+
+    // Create metadata JSON
+    const metadata = {
+      name: title,
+      work_type: workType,
+      description: description,
+      image: `ipfs://${artworkCID}`,
+      uploader: {
+        username: "kee",  // Or dynamically pass this
+        address: wallet.address
+      },
+    };
+
+    // Upload metadata JSON to IPFS
+    try {
+      console.log("Pinning metadata JSON to IPFS...");
+      const result = await pinata.pinJSONToIPFS(metadata, {
+        pinataMetadata: {
+          name: `Metadata for ${title}`,
+        },
+      });
+      metadataCID = result.IpfsHash;
+      console.log("Metadata pinned! CID:", metadataCID);
+    } catch (ipfsError) {
+      console.error("Error pinning metadata JSON to IPFS:", ipfsError);
+      return res.status(500).json({ error: 'Failed to pin metadata JSON to IPFS.' });
+    }
+
+    // Call smart contract
+    try {
+      console.log("Sending transaction to smart contract...");
+      const tx = await contract.uploadWork(metadataCID, metadata.uploader.username);
+      await tx.wait();
+      console.log("Transaction confirmed:", tx.hash);
+
+      res.status(200).json({
+        message: 'Data and metadata uploaded to IPFS and blockchain successfully!',
+        artworkCID,
+        metadataCID,
+        transactionHash: tx.hash,
+        title,
+        workType,
+        description,
+        pinataGateway: process.env.PINATA_DEDICATED_GATEWAY || "", // fallback if undefined
+      });
+    } catch (contractError) {
+      console.error("Error sending transaction:", contractError);
+      return res.status(500).json({ error: 'Failed to store metadata on blockchain.' });
+    }
+
+  } catch (error) {
+    console.error("Server error during upload process:", error);
+    res.status(500).json({ error: 'An unexpected error occurred on the server.' });
+  }
 });
-
-
-
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
