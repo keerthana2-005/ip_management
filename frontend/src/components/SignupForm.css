@@ -1,7 +1,8 @@
 /* General Page Styles */
 body {
     font-family: Arial, sans-serif;
-    background-color: #f3f4f6;
+    background-color: #121212; /* Dark background */
+    color: #ffffff; /* White text */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -20,10 +21,10 @@ body {
 
 /* Signup Box */
 .signup-box {
-    background: white;
+    background: #1e1e1e; /* Darker box background */
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 5px 15px rgba(255, 255, 255, 0.05);
     width: 400px;
     text-align: center;
     transition: all 0.3s ease-in-out;
@@ -33,21 +34,21 @@ body {
 .signup-title {
     font-size: 24px;
     font-weight: bold;
-    color: #333;
+    color: #ffffff;
 }
 
 .signup-subtitle {
     font-size: 14px;
-    color: #666;
+    color: #bbbbbb;
     margin-top: 5px;
 }
 
 /* Error Message */
 .error-message {
-    color: red;
+    color: #ff4d4d;
     font-size: 14px;
     margin-bottom: 10px;
-    background: #ffe5e5;
+    background: #330000;
     padding: 8px;
     border-radius: 5px;
 }
@@ -66,7 +67,7 @@ body {
 .input-group label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: #dddddd;
     display: block;
     margin-bottom: 5px;
 }
@@ -75,13 +76,16 @@ body {
 .input-container {
     position: relative;
 }
+
 .input-container input {
-    width: 100%;  /* Ensure it fits within the parent */
-    padding: 10px 40px; /* Keep space for icons */
-    border: 1px solid #ccc;
+    width: 100%;
+    padding: 10px 40px;
+    background-color: #2a2a2a;
+    color: white;
+    border: 1px solid #555;
     border-radius: 5px;
     font-size: 14px;
-    box-sizing: border-box; /* Prevent overflow */
+    box-sizing: border-box;
 }
 
 .input-container input:focus {
@@ -96,7 +100,7 @@ body {
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #888;
+    color: #aaaaaa;
     width: 18px;
     height: 18px;
 }
@@ -120,8 +124,8 @@ body {
 }
 
 .signup-button:hover {
-    background-color: #4338ca;
-    box-shadow: 0px 4px 10px rgba(79, 70, 229, 0.3);
+    background-color: #d6d6de;
+    box-shadow: 0px 4px 10px rgba(228, 228, 234, 0.3);
 }
 
 /* Arrow Icon */
