@@ -96,7 +96,7 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    paddingTop: '1.5rem',
+    paddingTop: '1.3rem',
     paddingBottom: '1.5rem',
     paddingLeft: '2rem',
     paddingRight: '2rem',

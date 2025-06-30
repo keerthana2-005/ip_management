@@ -98,8 +98,7 @@ const Navbar = () => {
   // Updated navLinks to include paths:
   const navLinks = [
     { name: 'Home', path: '/home' },
-    { name: 'Explore', path: '/explore' },
-    { name: 'How It Works', path: '/how-it-works' },
+    { name: 'How It Works', path: '/guide' },
     { name: 'About', path: '/about' },
   ];
 
@@ -123,7 +122,7 @@ const Navbar = () => {
 
         {/* Desktop Buttons */}
         <div className="buttons" style={{ display: window.innerWidth > 768 ? 'flex' : 'none', ...styles.buttons }}>
-          <button style={styles.connectBtn}>Connect Wallet</button>
+  
           <Link to="/profile" style={styles.iconBtn}>
             <User size={24} />
           </Link>
